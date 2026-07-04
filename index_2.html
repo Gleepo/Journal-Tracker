@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Submissions Lagoon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Carter+One&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F1EBDF; --paper-2:#FBF7EF; --card:#FFFDF8;
+  --ink:#15333A; --slate:#2C5159; --slate-2:#3D6B72;
+  --aqua:#1AABB6; --aqua-deep:#147F88;
+  --line:#D9CBB4; --line-2:#E7DDCB;
+  --muted:#6C7A75; --rust:#C0573B; --rust-deep:#9C4026;
+  --good:#3E8E6F; --gold:#C2933A;
+  --r:14px; --r-sm:9px;
+  --shadow:0 1px 2px rgba(21,51,58,.06),0 6px 20px rgba(21,51,58,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:'Atkinson Hyperlegible',system-ui,sans-serif;
+  background:var(--paper); color:var(--ink);
+  -webkit-text-size-adjust:100%; line-height:1.45;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+h1,h2,h3{font-family:'Carter One',cursive;font-weight:400;letter-spacing:.01em;line-height:1.1}
+a{color:var(--aqua-deep)}
+.wrap{max-width:920px;margin:0 auto;padding:18px 16px 120px}
+
+/* header */
+header.app{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.brand h1{font-size:30px;color:var(--slate);margin:0}
+.brand .sub{color:var(--muted);font-size:13px;margin-top:2px}
+.brand .mark{color:var(--aqua)}
+
+/* buttons */
+button{font-family:inherit;font-size:15px;cursor:pointer;border-radius:var(--r-sm);
+  border:1px solid transparent;padding:10px 14px;min-height:44px;transition:.12s ease;
+  background:var(--card);color:var(--ink);border-color:var(--line)}
+button:hover{border-color:var(--slate-2)}
+button:focus-visible{outline:3px solid var(--aqua);outline-offset:2px}
+button.primary{background:var(--slate);color:#fff;border-color:var(--slate)}
+button.primary:hover{background:var(--slate-2)}
+button.accent{background:var(--aqua);color:#06343a;border-color:var(--aqua);font-weight:700}
+button.accent:hover{background:var(--aqua-deep);color:#fff}
+button.ghost{background:transparent;border-color:transparent;color:var(--slate)}
+button.ghost:hover{background:var(--paper-2);border-color:var(--line)}
+button.danger{color:var(--rust-deep);border-color:var(--line)}
+button.danger:hover{border-color:var(--rust);background:#fbeee9}
+button.sm{min-height:36px;padding:6px 10px;font-size:13px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap}
+
+/* status/footer bar */
+.statusbar{position:fixed;left:0;right:0;bottom:0;z-index:40;
+  background:var(--card);border-top:1px solid var(--line);
+  box-shadow:0 -2px 14px rgba(21,51,58,.07);
+  padding:8px max(16px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.statusbar .inner{max-width:920px;margin:0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.counts{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.counts b{color:var(--ink);font-variant-numeric:tabular-nums}
+.statusbar .grow{flex:1 1 80px}
+.backup-state{font-size:13px;display:flex;align-items:center;gap:7px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--good);flex:none}
+.dot.warn{background:var(--rust)}
+.dot.idle{background:var(--line)}
+
+/* cards / empty */
+.empty{background:var(--paper-2);border:1px dashed var(--line);border-radius:var(--r);
+  padding:40px 24px;text-align:center;color:var(--muted);margin-top:18px}
+.empty h2{color:var(--slate);font-size:20px;margin:0 0 6px}
+
+.hidden{display:none!important}
+
+/* toast */
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:60;
+  background:var(--ink);color:var(--paper);padding:11px 16px;border-radius:var(--r-sm);
+  box-shadow:var(--shadow);max-width:90vw;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.show.enter{transform:translateX(-50%) translateY(-4px)}
+
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+/* ===== tabs ===== */
+.tabs{display:flex;gap:4px;background:var(--paper-2);border:1px solid var(--line);
+  border-radius:var(--r);padding:4px;margin:14px 0 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:1 0 auto;min-height:42px;border-radius:var(--r-sm);border:1px solid transparent;white-space:nowrap;
+  background:transparent;color:var(--slate);font-weight:700;font-size:15px}
+.tab[aria-selected="true"]{background:var(--slate);color:#fff}
+.tab .badge{display:inline-block;min-width:20px;margin-left:5px;padding:1px 6px;border-radius:20px;
+  font-size:12px;background:var(--line-2);color:var(--slate);font-weight:700;font-variant-numeric:tabular-nums}
+.tab[aria-selected="true"] .badge{background:rgba(255,255,255,.22);color:#fff}
+
+.view{animation:fade .18s ease}
+@keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+
+/* ===== filter bar ===== */
+.filterbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.filterbar .search{flex:1 1 200px;min-width:0}
+.field-search{position:relative;display:flex;align-items:center}
+input[type=text],input[type=url],input[type=date],input[type=number],select,textarea{
+  font-family:inherit;font-size:15px;color:var(--ink);background:var(--card);
+  border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px;min-height:44px;width:100%}
+textarea{min-height:74px;line-height:1.4;resize:vertical}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--aqua);outline-offset:1px;border-color:var(--aqua)}
+select{appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%232C5159' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat:no-repeat;background-position:right 12px center;padding-right:34px}
+.filter-status{flex:0 1 auto;min-width:130px;width:auto}
+.chk{display:inline-flex;align-items:center;gap:7px;font-size:14px;color:var(--slate);
+  min-height:44px;cursor:pointer;user-select:none;white-space:nowrap}
+.chk input{width:20px;height:20px;min-height:0;accent-color:var(--aqua-deep)}
+
+/* ===== journal / poem / sub cards ===== */
+.list{display:grid;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--shadow);padding:14px 16px}
+.card .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.card .title{font-size:18px;font-weight:700;margin:0;line-height:1.2}
+.card .title a{color:var(--ink);text-decoration:none}
+.card .title a:hover{color:var(--aqua-deep);text-decoration:underline}
+.card .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.card .aesthetic{color:var(--muted);font-size:14px;margin-top:9px;line-height:1.4}
+.card .row-actions{display:flex;gap:6px;margin-top:11px;flex-wrap:wrap}
+
+/* fact chips */
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;line-height:1;
+  padding:6px 9px;border-radius:20px;background:var(--paper-2);border:1px solid var(--line-2);color:var(--slate)}
+.chip.warn{background:#fbeee9;border-color:#ecc7ba;color:var(--rust-deep)}
+.chip.good{background:#e9f3ee;border-color:#bfdccc;color:#2c6e54}
+.chip b{font-weight:700}
+
+/* status select pill */
+.statuspill{position:relative;display:inline-flex;align-items:center}
+.statuspill select{min-height:38px;padding:6px 30px 6px 12px;border-radius:20px;font-weight:700;
+  font-size:13px;border-width:1px;width:auto;background-position:right 9px center}
+.st-interested{background:var(--paper-2)!important;color:var(--slate)!important;border-color:var(--line)!important}
+.st-shortlisted{background:#e6f4f5!important;color:var(--aqua-deep)!important;border-color:#b8e0e3!important}
+.st-submitted{background:#e9f0ef!important;color:var(--slate)!important;border-color:#c3d6d2!important}
+.st-passed{background:#f1ece3!important;color:var(--muted)!important;border-color:var(--line)!important}
+.st-closed{background:#efe7e2!important;color:#7a5c4f!important;border-color:#dcc9bd!important}
+.st-pending{background:#e6f4f5!important;color:var(--aqua-deep)!important;border-color:#b8e0e3!important}
+.st-accepted{background:#e3f1e9!important;color:var(--good)!important;border-color:#b6d8c3!important}
+.st-rejected{background:#f1ece3!important;color:var(--muted)!important;border-color:var(--line)!important}
+.st-withdrawn{background:#efe7e2!important;color:#7a5c4f!important;border-color:#dcc9bd!important}
+
+/* ===== modal ===== */
+.modal-back{position:fixed;inset:0;z-index:80;background:rgba(21,51,58,.34);
+  display:flex;align-items:flex-end;justify-content:center;padding:0}
+.modal{background:var(--paper);width:100%;max-width:640px;max-height:92vh;overflow:auto;
+  border-radius:var(--r) var(--r) 0 0;box-shadow:0 -8px 40px rgba(21,51,58,.3);
+  padding:18px 16px calc(18px + env(safe-area-inset-bottom));animation:slideup .2s ease}
+@keyframes slideup{from{transform:translateY(20px);opacity:.6}to{transform:none;opacity:1}}
+@media(min-width:640px){.modal-back{align-items:center;padding:20px}.modal{border-radius:var(--r)}}
+.modal h2{font-size:22px;color:var(--slate);margin:0 0 14px}
+.form-grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:560px){.form-grid{grid-template-columns:1fr 1fr}.form-grid .full{grid-column:1/-1}}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld label{font-size:13px;font-weight:700;color:var(--slate)}
+.fld .hint{font-size:12px;color:var(--muted);font-weight:400}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+.modal-actions .grow{flex:1}
+.req-mark{color:var(--rust)}
+.inline-dates{display:flex;gap:8px}
+.inline-dates>div{flex:1}
+
+.section-empty{background:var(--paper-2);border:1px dashed var(--line);border-radius:var(--r);
+  padding:32px 22px;text-align:center;color:var(--muted)}
+.section-empty h3{color:var(--slate);font-size:18px;margin:0 0 6px}
+
+/* withdrawal alerts */
+.alerts-wrap{margin:6px 0 4px}
+.alerts-wrap .head{font-family:'Carter One',cursive;color:var(--rust-deep);font-size:18px;margin:0 0 9px}
+.alert-card{background:#fbeee9;border:1px solid #e6b8a6;border-left:5px solid var(--rust);
+  border-radius:var(--r);padding:12px 14px;margin-bottom:10px}
+.alert-card h3{font-size:15px;color:var(--rust-deep);margin:0 0 4px;font-family:'Atkinson Hyperlegible',sans-serif;font-weight:700}
+.alert-card p{margin:0 0 9px;font-size:14px;color:#5e3a2c;line-height:1.4}
+.alert-card .acts{display:flex;gap:8px;flex-wrap:wrap}
+
+/* poem toggles in submission editor */
+.poemtoggles{display:flex;flex-wrap:wrap;gap:7px}
+.ptog{cursor:pointer;border:1px solid var(--line);background:var(--card);border-radius:20px;
+  padding:8px 12px;font-size:14px;min-height:40px;color:var(--slate)}
+.ptog.on{background:var(--aqua);border-color:var(--aqua);color:#06343a;font-weight:700}
+.quick-add{display:flex;gap:7px;margin-top:9px}
+.quick-add input{flex:1}
+.sub-poemline{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.withdraw-inline{background:#fbeee9;border:1px solid #e6b8a6;border-radius:var(--r-sm);
+  padding:9px 11px;margin-top:10px;font-size:13.5px;color:var(--rust-deep);line-height:1.4}
+.withdraw-inline b{font-weight:700}
+
+/* save-backup nudge */
+button.nudge{background:var(--rust);border-color:var(--rust);color:#fff;animation:nudgepulse 2.2s ease-in-out infinite}
+button.nudge:hover{background:var(--rust-deep);border-color:var(--rust-deep)}
+@keyframes nudgepulse{0%,100%{box-shadow:0 0 0 0 rgba(192,87,59,.0)}50%{box-shadow:0 0 0 4px rgba(192,87,59,.18)}}
+
+/* import options */
+.import-opt{border:1px solid var(--line);border-radius:var(--r);padding:13px 14px;margin-bottom:11px;background:var(--card)}
+.import-opt h3{font-family:'Atkinson Hyperlegible',sans-serif;font-size:15px;font-weight:700;color:var(--slate);margin:0 0 4px}
+.import-opt p{margin:0 0 10px;font-size:13.5px;color:var(--muted);line-height:1.4}
+
+/* deadlines view */
+.dl-section{margin-bottom:20px}
+.dl-section .h{font-family:'Carter One',cursive;color:var(--slate);font-size:18px;margin:0 0 9px;display:flex;align-items:center;gap:8px}
+.dl-section .h .n{font-size:13px;font-family:'Atkinson Hyperlegible',sans-serif;color:var(--muted);font-weight:700}
+.dl-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card);
+  border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 13px;margin-bottom:8px}
+.dl-row .nm{font-weight:700;flex:1 1 150px;min-width:0;line-height:1.3}
+.dl-row .nm small{display:block;font-weight:400;color:var(--muted);font-size:12.5px;margin-top:2px}
+.dl-row .when{font-size:13px;font-variant-numeric:tabular-nums;color:var(--slate);white-space:nowrap}
+.dl-row .when.urgent{color:var(--rust-deep);font-weight:700}
+.dl-row .when.soon{color:var(--gold);font-weight:700}
+.dl-row .acts{display:flex;gap:6px;flex-wrap:wrap}
+.dl-pill{font-size:12px;padding:4px 9px;border-radius:20px;background:var(--paper-2);border:1px solid var(--line-2);color:var(--slate);white-space:nowrap}
+.dl-pill.overdue{background:#fbeee9;border-color:#e6b8a6;color:var(--rust-deep);font-weight:700}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="app">
+    <div class="brand">
+      <h1>Submissions <span class="mark">Lagoon</span></h1>
+      <div class="sub">Discover journals, log submissions, never miss a withdrawal.</div>
+    </div>
+    <div class="toolbar">
+      <button id="btn-import" class="ghost">Import…</button>
+      <button id="btn-export" class="primary">Save backup</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <div id="alert-root"></div>
+
+    <div class="tabs" role="tablist" aria-label="Views">
+      <button class="tab" data-view="journals" role="tab" aria-selected="true">Journals <span class="badge" id="tab-c-journals">0</span></button>
+      <button class="tab" data-view="poems" role="tab" aria-selected="false">Poems <span class="badge" id="tab-c-poems">0</span></button>
+      <button class="tab" data-view="submissions" role="tab" aria-selected="false">Submissions <span class="badge" id="tab-c-subs">0</span></button>
+      <button class="tab" data-view="deadlines" role="tab" aria-selected="false">Deadlines <span class="badge" id="tab-c-dl">0</span></button>
+    </div>
+
+    <section id="view-journals" class="view" role="tabpanel">
+      <div class="filterbar">
+        <div class="search field-search">
+          <input type="text" id="j-search" placeholder="Search journals, aesthetic, source…" aria-label="Search journals">
+        </div>
+        <select id="j-filter-status" class="filter-status" aria-label="Filter by status">
+          <option value="">All statuses</option>
+        </select>
+        <label class="chk"><input type="checkbox" id="j-filter-simul"> Simultaneous only</label>
+        <button class="accent" id="btn-add-journal">+ Add journal</button>
+      </div>
+      <div id="journal-list" class="list"></div>
+    </section>
+
+    <section id="view-poems" class="view hidden" role="tabpanel">
+      <div class="filterbar">
+        <div class="search field-search">
+          <input type="text" id="p-search" placeholder="Search poems…" aria-label="Search poems">
+        </div>
+        <select id="p-filter-register" class="filter-status" aria-label="Filter by register">
+          <option value="">All registers</option>
+        </select>
+        <button class="accent" id="btn-add-poem">+ Add poem</button>
+      </div>
+      <div id="poem-list" class="list"></div>
+    </section>
+
+    <section id="view-submissions" class="view hidden" role="tabpanel">
+      <div class="filterbar">
+        <select id="s-filter-status" class="filter-status" aria-label="Filter submissions by status">
+          <option value="">All statuses</option>
+        </select>
+        <span class="grow" style="flex:1"></span>
+        <button class="accent" id="btn-add-sub">+ Log submission</button>
+      </div>
+      <div id="sub-list" class="list"></div>
+    </section>
+
+    <section id="view-deadlines" class="view hidden" role="tabpanel">
+      <div class="filterbar">
+        <span style="font-size:14px;color:var(--muted)">Horizon</span>
+        <select id="dl-horizon" class="filter-status" aria-label="Deadline horizon">
+          <option value="14">Next 14 days</option>
+          <option value="30" selected>Next 30 days</option>
+          <option value="60">Next 60 days</option>
+          <option value="90">Next 90 days</option>
+        </select>
+      </div>
+      <div id="deadline-list"></div>
+    </section>
+  </main>
+
+  <div id="modal-root"></div>
+</div>
+
+<div class="statusbar">
+  <div class="inner">
+    <div class="counts">
+      <span><b id="c-journals">0</b> journals</span>
+      <span><b id="c-poems">0</b> poems</span>
+      <span><b id="c-subs">0</b> submissions</span>
+    </div>
+    <span class="grow"></span>
+    <div class="backup-state"><span class="dot idle" id="backup-dot"></span><span id="backup-label">No data yet</span></div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="file-input" accept="application/json,.json" class="hidden">
+
+<script>
+"use strict";
+/* =========================================================================
+   SUBMISSIONS LAGOON — data layer (DOM-free, exposed on window.PST for tests)
+   ========================================================================= */
+const PST = (function(){
+  const SCHEMA_VERSION = 1;
+  const STORAGE_KEY = "submissions-lagoon:v1";
+
+  const REGISTERS = {
+    lyric:"Quiet lyric / diasporic",
+    surreal:"Wry-surreal",
+    maximalist:"Maximalist satirical long-poem"
+  };
+  const JOURNAL_STATUS = ["interested","shortlisted","submitted","passed","closed"];
+  const POEM_STATUS    = ["draft","ready","out","published","retired"];
+  const SUB_STATUS     = ["pending","accepted","rejected","withdrawn"];
+
+  function nowISO(){ return new Date().toISOString(); }
+  function uid(prefix){
+    const r = (typeof crypto!=="undefined" && crypto.randomUUID)
+      ? crypto.randomUUID().replace(/-/g,"").slice(0,12)
+      : Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+    return prefix+"_"+r;
+  }
+
+  function newState(){
+    return { schemaVersion:SCHEMA_VERSION, lastBackupAt:null, lastModifiedAt:null,
+             dirtyCount:0, journals:[], poems:[], submissions:[] };
+  }
+
+  /* ---- URL normalisation (dedupe key) ---- */
+  function normUrl(u){
+    if(!u) return "";
+    let s = String(u).trim().toLowerCase();
+    s = s.replace(/^https?:\/\//,"").replace(/^www\./,"");
+    s = s.split("#")[0].split("?")[0];      // drop fragment + query string
+    s = s.replace(/\/+$/,"");               // drop trailing slashes
+    return s;
+  }
+
+  /* ---- factories: apply defaults + ids + timestamps ---- */
+  function makeJournal(p){
+    p = p||{};
+    const t = nowISO();
+    const rp = p.readingPeriod || {};
+    return {
+      id: p.id || uid("jrn"),
+      name: (p.name||"").trim(),
+      url: (p.url||"").trim(),
+      readingPeriod: {
+        type: rp.type==="window" ? "window" : "rolling",
+        open: rp.open||null, close: rp.close||null
+      },
+      readingFee: p.readingFee||"",
+      simultaneousOk: triState(p.simultaneousOk),
+      multipleOk: triState(p.multipleOk),
+      pays: p.pays||"",
+      responseTime: p.responseTime||"",
+      aesthetic: p.aesthetic||"",
+      status: JOURNAL_STATUS.includes(p.status) ? p.status : "interested",
+      source: p.source||"",
+      discoveredAt: p.discoveredAt||t,
+      notes: p.notes||"",
+      createdAt: p.createdAt||t, updatedAt: p.updatedAt||t
+    };
+  }
+  function makePoem(p){
+    p = p||{};
+    const t = nowISO();
+    let lc = p.lineCount;
+    lc = (lc===0||lc) && !isNaN(parseInt(lc,10)) ? parseInt(lc,10) : null;
+    return {
+      id: p.id || uid("poem"),
+      title: (p.title||"").trim(),
+      register: REGISTERS[p.register] ? p.register : "",
+      lineCount: lc,
+      status: POEM_STATUS.includes(p.status) ? p.status : "draft",
+      publicationCredit: p.publicationCredit||"",
+      notes: p.notes||"",
+      createdAt: p.createdAt||t, updatedAt: p.updatedAt||t
+    };
+  }
+  function makeSubmission(p){
+    p = p||{};
+    const t = nowISO();
+    return {
+      id: p.id || uid("sub"),
+      journalId: p.journalId||null,
+      poemIds: Array.isArray(p.poemIds)? p.poemIds.slice() : [],
+      dateSent: p.dateSent||t.slice(0,10),
+      status: SUB_STATUS.includes(p.status) ? p.status : "pending",
+      responseDate: p.responseDate||null,
+      feePaid: p.feePaid||"",
+      simultaneous: !!p.simultaneous,
+      notes: p.notes||"",
+      createdAt: p.createdAt||t, updatedAt: p.updatedAt||t
+    };
+  }
+  function triState(v){
+    if(v===true||v==="yes"||v==="y"||v==="true") return true;
+    if(v===false||v==="no"||v==="n"||v==="false") return false;
+    return null;
+  }
+
+  /* ---- persistence ---- */
+  function load(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return newState();
+      const parsed = JSON.parse(raw);
+      const v = validateImport(parsed);
+      return v.ok ? v.state : newState();
+    }catch(e){ console.warn("load failed",e); return newState(); }
+  }
+  function save(state){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); return true; }
+    catch(e){ console.warn("save failed",e); return false; }
+  }
+  // mark a mutation: bump dirty counter + timestamps. Call after every change.
+  function touch(state){
+    state.lastModifiedAt = nowISO();
+    state.dirtyCount = (state.dirtyCount||0)+1;
+    return state;
+  }
+
+  /* ---- export / import ---- */
+  // pure: returns the object to be written to a backup file
+  function serialize(state){
+    return {
+      schemaVersion:SCHEMA_VERSION,
+      exportedAt: nowISO(),
+      lastBackupAt: state.lastBackupAt, lastModifiedAt: state.lastModifiedAt,
+      dirtyCount: 0,
+      journals: state.journals, poems: state.poems, submissions: state.submissions
+    };
+  }
+  // mark state as backed-up (after a successful export). Mutates + returns state.
+  function markBackedUp(state){
+    state.lastBackupAt = nowISO();
+    state.dirtyCount = 0;
+    return state;
+  }
+  // validate + normalise an imported object into a clean state (restore mode)
+  function validateImport(obj){
+    const errors = [];
+    if(obj===null || typeof obj!=="object" || Array.isArray(obj))
+      return { ok:false, errors:["File is not a Submissions Lagoon backup (expected a JSON object)."], state:null };
+    if(!("journals" in obj) && !("poems" in obj) && !("submissions" in obj))
+      return { ok:false, errors:["File has none of: journals, poems, submissions. Not a recognised backup."], state:null };
+    const arr = (k)=> Array.isArray(obj[k]) ? obj[k] : [];
+    const state = newState();
+    state.journals    = arr("journals").map(makeJournal);
+    state.poems       = arr("poems").map(makePoem);
+    state.submissions = arr("submissions").map(makeSubmission);
+    // referential cleanup: drop poem refs + journal refs that don't exist
+    const pIds = new Set(state.poems.map(p=>p.id));
+    const jIds = new Set(state.journals.map(j=>j.id));
+    state.submissions.forEach(s=>{
+      const before = s.poemIds.length;
+      s.poemIds = s.poemIds.filter(id=>pIds.has(id));
+      if(s.poemIds.length!==before) errors.push("Submission "+s.id+": dropped poem refs not present in file.");
+      if(s.journalId && !jIds.has(s.journalId)){ errors.push("Submission "+s.id+": journal ref missing; left unlinked."); s.journalId=null; }
+    });
+    state.lastBackupAt   = obj.lastBackupAt || null;
+    state.lastModifiedAt = obj.lastModifiedAt || null;
+    state.dirtyCount     = Number.isFinite(obj.dirtyCount) ? obj.dirtyCount : 0;
+    return { ok:true, errors, state };
+  }
+
+  return {
+    SCHEMA_VERSION, STORAGE_KEY, REGISTERS, JOURNAL_STATUS, POEM_STATUS, SUB_STATUS,
+    nowISO, uid, newState, normUrl,
+    makeJournal, makePoem, makeSubmission, triState,
+    load, save, touch, serialize, markBackedUp, validateImport
+  };
+})();
+if(typeof window!=="undefined") window.PST = PST;
+
+/* =========================================================================
+   UI layer
+   ========================================================================= */
+(function(){
+  if(typeof document==="undefined") return;
+  let state = PST.load();
+
+  const $ = (id)=>document.getElementById(id);
+
+  function persist(){ PST.save(state); render(); }
+
+  /* ----- toast ----- */
+  let toastT;
+  function toast(msg){
+    const el = $("toast"); if(!el) return;
+    el.textContent = msg; el.classList.add("show","enter");
+    clearTimeout(toastT);
+    toastT = setTimeout(()=>el.classList.remove("show","enter"), 2600);
+  }
+
+  /* ----- backup state indicator ----- */
+  function renderBackupState(){
+    const dot = $("backup-dot"), label = $("backup-label"), ebtn = $("btn-export");
+    const total = state.journals.length+state.poems.length+state.submissions.length;
+    const dirty = state.dirtyCount||0;
+    if(ebtn) ebtn.classList.toggle("nudge", dirty>0);
+    if(total===0 && !state.lastBackupAt){
+      dot.className="dot idle"; label.textContent="No data yet"; return;
+    }
+    if(dirty>0){
+      dot.className="dot warn";
+      label.textContent = dirty+" change"+(dirty===1?"":"s")+" since last backup — save your file";
+    }else{
+      dot.className="dot";
+      label.textContent = state.lastBackupAt ? "Backed up "+relTime(state.lastBackupAt) : "Up to date";
+    }
+  }
+  function relTime(iso){
+    const d = (Date.now()-new Date(iso).getTime())/1000;
+    if(d<60) return "just now";
+    if(d<3600) return Math.floor(d/60)+" min ago";
+    if(d<86400) return Math.floor(d/3600)+" h ago";
+    return Math.floor(d/86400)+" d ago";
+  }
+
+  /* ----- counts ----- */
+  function renderCounts(){
+    $("c-journals").textContent = state.journals.length;
+    $("c-poems").textContent    = state.poems.length;
+    $("c-subs").textContent     = state.submissions.length;
+  }
+
+  function render(){
+    renderCounts();
+    renderBackupState();
+    if(window.__renderEntities) window.__renderEntities(state, persist, toast); // hook for later stages
+  }
+
+  /* ----- export ----- */
+  function doExport(){
+    const payload = PST.serialize(state);
+    const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0,10);
+    a.href = url; a.download = "submissions-lagoon-"+stamp+".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    PST.markBackedUp(state); persist();
+    toast("Backup saved to your downloads.");
+  }
+
+  /* ----- import (restore mode for now; merge added in stage 4) ----- */
+  function doImportFile(file){
+    if(window.__onImportFile){ window.__onImportFile(file); return; }
+    // fallback restore (only if entities layer somehow absent)
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      let obj;
+      try{ obj = JSON.parse(reader.result); }
+      catch(e){ toast("That file isn't valid JSON."); return; }
+      const v = PST.validateImport(obj);
+      if(!v.ok){ toast(v.errors[0]||"Couldn't read that backup."); return; }
+      const total = v.state.journals.length+v.state.poems.length+v.state.submissions.length;
+      const cur = state.journals.length+state.poems.length+state.submissions.length;
+      const ok = (cur===0) || window.confirm(
+        "Restore will REPLACE everything currently in the tool ("+cur+" records) with "+total+" records from the file. Continue?");
+      if(!ok) return;
+      state = v.state;
+      persist();
+      toast("Restored "+total+" records from backup.");
+      if(v.errors.length) console.warn("Import notes:", v.errors);
+    };
+    reader.readAsText(file);
+  }
+
+  /* ----- wire up ----- */
+  $("btn-export").addEventListener("click", doExport);
+  $("btn-import").addEventListener("click", ()=>$("file-input").click());
+  $("file-input").addEventListener("change", (e)=>{
+    const f = e.target.files && e.target.files[0];
+    if(f) doImportFile(f);
+    e.target.value = "";
+  });
+
+  // expose a tiny UI handle for tests/integration
+  window.__app = { get state(){return state;}, set state(s){state=s;}, render, persist, doExport };
+  render();
+})();
+</script>
+
+<script>
+"use strict";
+/* =========================================================================
+   ENTITY UI — journals (stage 2). Poems/submissions/withdrawals extend this.
+   Pure CRUD/filter functions are attached to PST so they can be unit-tested.
+   ========================================================================= */
+(function(){
+  if(typeof document==="undefined") return;
+  const $ = (id)=>document.getElementById(id);
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+  function hrefOf(u){ if(!u) return ""; return /^https?:\/\//i.test(u)? u : "https://"+u; }
+
+  /* ---------- pure CRUD + filter (attached to PST) ---------- */
+  Object.assign(PST, {
+    upsertJournal(state, props){
+      const ex = props.id ? state.journals.find(j=>j.id===props.id) : null;
+      if(ex){
+        const merged = Object.assign({}, ex, props, {createdAt:ex.createdAt, updatedAt:PST.nowISO()});
+        Object.assign(ex, PST.makeJournal(merged));
+        PST.touch(state); return ex;
+      }
+      const j = PST.makeJournal(props);
+      state.journals.push(j); PST.touch(state); return j;
+    },
+    deleteJournal(state, id){
+      const before = state.journals.length;
+      state.journals = state.journals.filter(j=>j.id!==id);
+      const removedSubs = state.submissions.filter(s=>s.journalId===id).length;
+      state.submissions = state.submissions.filter(s=>s.journalId!==id);
+      if(state.journals.length!==before) PST.touch(state);
+      return { removedSubs };
+    },
+    filterJournals(journals, opts){
+      opts = opts||{};
+      let out = journals.slice();
+      if(opts.status) out = out.filter(j=>j.status===opts.status);
+      if(opts.simulOnly) out = out.filter(j=>j.simultaneousOk===true);
+      const q = (opts.q||"").trim().toLowerCase();
+      if(q) out = out.filter(j=>(j.name+" "+j.aesthetic+" "+j.source+" "+j.notes).toLowerCase().includes(q));
+      return out;
+    }
+  });
+
+  /* ---------- pure poem/submission CRUD + derived (stage 3) ---------- */
+  Object.assign(PST, {
+    journalName(state,id){ const j=state.journals.find(x=>x.id===id); return j? (j.name||"(untitled journal)") : "(unlinked journal)"; },
+    poemTitle(state,id){ const p=state.poems.find(x=>x.id===id); return p? (p.title||"(untitled poem)") : "(unknown poem)"; },
+
+    upsertPoem(state, props){
+      const ex = props.id ? state.poems.find(p=>p.id===props.id) : null;
+      if(ex){
+        const merged=Object.assign({},ex,props,{createdAt:ex.createdAt,updatedAt:PST.nowISO()});
+        Object.assign(ex, PST.makePoem(merged)); PST.touch(state); return ex;
+      }
+      const p=PST.makePoem(props); state.poems.push(p); PST.touch(state); return p;
+    },
+    deletePoem(state, id){
+      const before=state.poems.length;
+      state.poems=state.poems.filter(p=>p.id!==id);
+      let removedSubs=0;
+      state.submissions.forEach(s=>{ s.poemIds=s.poemIds.filter(x=>x!==id); });
+      const keep=state.submissions.filter(s=>{ if(s.poemIds.length===0){removedSubs++; return false;} return true; });
+      state.submissions=keep;
+      if(state.poems.length!==before) PST.touch(state);
+      return { removedSubs };
+    },
+    filterPoems(poems, opts){
+      opts=opts||{}; let out=poems.slice();
+      if(opts.register) out=out.filter(p=>p.register===opts.register);
+      const q=(opts.q||"").trim().toLowerCase();
+      if(q) out=out.filter(p=>(p.title+" "+p.notes+" "+p.publicationCredit).toLowerCase().includes(q));
+      return out;
+    },
+
+    upsertSubmission(state, props){
+      const ex = props.id ? state.submissions.find(s=>s.id===props.id) : null;
+      if(ex){
+        const merged=Object.assign({},ex,props,{createdAt:ex.createdAt,updatedAt:PST.nowISO()});
+        Object.assign(ex, PST.makeSubmission(merged)); PST.touch(state); return ex;
+      }
+      const s=PST.makeSubmission(props); state.submissions.push(s); PST.touch(state); return s;
+    },
+    deleteSubmission(state, id){
+      const before=state.submissions.length;
+      state.submissions=state.submissions.filter(s=>s.id!==id);
+      if(state.submissions.length!==before) PST.touch(state);
+      return {};
+    },
+
+    // journals where a poem is currently OUT (in a pending submission)
+    poemsOutAt(state, poemId){
+      return state.submissions
+        .filter(s=>s.status==="pending" && s.poemIds.includes(poemId))
+        .map(s=>({ submissionId:s.id, journalId:s.journalId, journalName:PST.journalName(state,s.journalId) }));
+    },
+
+    // THE withdrawal workflow — fully derived, never stored.
+    // A pending submission is flagged if it shares a poem with an *accepted* submission.
+    computeWithdrawals(state){
+      const accByPoem = new Map();              // poemId -> [journalName,...]
+      state.submissions.forEach(s=>{
+        if(s.status!=="accepted") return;
+        const jn = PST.journalName(state, s.journalId);
+        s.poemIds.forEach(pid=>{
+          if(!accByPoem.has(pid)) accByPoem.set(pid,[]);
+          accByPoem.get(pid).push(jn);
+        });
+      });
+      const out=[];
+      state.submissions.forEach(s=>{
+        if(s.status!=="pending") return;
+        const poems=[];
+        s.poemIds.forEach(pid=>{
+          const acc=accByPoem.get(pid);
+          if(acc && acc.length) poems.push({ poemId:pid, title:PST.poemTitle(state,pid), acceptedAt:acc.slice() });
+        });
+        if(poems.length) out.push({ submissionId:s.id, journalId:s.journalId,
+          journalName:PST.journalName(state,s.journalId), poems });
+      });
+      return out;
+    },
+
+    // dedupe key: submissions URL when present, else lowercased name
+    journalKey(j){ const u=PST.normUrl(j.url); return u ? "u:"+u : "n:"+(j.name||"").trim().toLowerCase(); },
+
+    // MERGE mode — add only genuinely-new journals (by dedupe key); never clobber
+    // existing records. New journals always enter as "interested". Poems/subs ignored.
+    mergeJournals(state, incoming){
+      const keys=new Set(state.journals.map(j=>PST.journalKey(j)));
+      let added=0; const skipped=[];
+      (incoming||[]).forEach(raw=>{
+        const j=PST.makeJournal(raw);
+        const k=PST.journalKey(j);
+        if(keys.has(k)){ skipped.push(j.name||"(untitled)"); return; }
+        j.status="interested"; state.journals.push(j); keys.add(k); added++;
+      });
+      if(added) PST.touch(state);
+      return { added, skipped };
+    }
+  });
+
+  /* ---------- pure deadlines logic (stage 6) ---------- */
+  Object.assign(PST, {
+    // parse free-text response time ("2–4 months", "8 weeks", "30 days") to an upper-bound day count.
+    // Honest: bare numbers with no unit, or unparseable text, return null.
+    parseResponseDays(text){
+      if(!text) return null;
+      const t=String(text).toLowerCase();
+      const nums=(t.match(/\d+(?:\.\d+)?/g)||[]).map(Number);
+      if(!nums.length) return null;
+      const n=Math.max(...nums);                 // upper bound of any range
+      if(/month/.test(t)) return Math.round(n*30);
+      if(/week/.test(t))  return Math.round(n*7);
+      if(/day/.test(t))   return Math.round(n);
+      return null;                                // unit unknown -> don't guess
+    },
+
+    // Everything time-sensitive, derived fresh. horizonDays bounds closing/opening;
+    // staleDays is the fallback "awaiting too long" threshold when no response time is stated.
+    computeDeadlines(state, opts){
+      opts=opts||{};
+      const horizon=opts.horizonDays||30, staleDefault=opts.staleDays||90;
+      const today=new Date(); today.setHours(0,0,0,0);
+      const dleft=(d)=>{ if(!d) return null; const x=new Date(d+"T00:00:00"); if(isNaN(x)) return null; return Math.round((x-today)/86400000); };
+      const skip=new Set(["passed","closed"]);
+      const closingSoon=[], opensSoon=[];
+      state.journals.forEach(j=>{
+        const rp=j.readingPeriod||{}; if(rp.type!=="window" || skip.has(j.status)) return;
+        if(rp.close){ const dl=dleft(rp.close); if(dl!=null && dl>=0 && dl<=horizon)
+          closingSoon.push({ journalId:j.id, name:j.name, close:rp.close, daysLeft:dl, status:j.status }); }
+        if(rp.open){ const dl=dleft(rp.open); if(dl!=null && dl>0 && dl<=horizon)
+          opensSoon.push({ journalId:j.id, name:j.name, open:rp.open, daysUntilOpen:dl, status:j.status }); }
+      });
+      closingSoon.sort((a,b)=>a.daysLeft-b.daysLeft);
+      opensSoon.sort((a,b)=>a.daysUntilOpen-b.daysUntilOpen);
+
+      const awaitingReply=[];
+      state.submissions.forEach(s=>{
+        if(s.status!=="pending") return;
+        const daysWaiting = s.dateSent!=null ? -dleft(s.dateSent) : null;
+        const j=state.journals.find(x=>x.id===s.journalId);
+        const expectedDays = j ? PST.parseResponseDays(j.responseTime) : null;
+        const overdue = daysWaiting!=null && (expectedDays!=null ? daysWaiting>expectedDays : daysWaiting>staleDefault);
+        awaitingReply.push({ submissionId:s.id, journalId:s.journalId, journalName:PST.journalName(state,s.journalId),
+          dateSent:s.dateSent, daysWaiting, expectedText:(j?j.responseTime:"")||"", expectedDays, overdue,
+          poems:s.poemIds.map(id=>PST.poemTitle(state,id)) });
+      });
+      awaitingReply.sort((a,b)=>(b.daysWaiting||0)-(a.daysWaiting||0));
+
+      const attention = closingSoon.filter(c=>c.daysLeft<=14).length + awaitingReply.filter(a=>a.overdue).length;
+      return { closingSoon, opensSoon, awaitingReply, attention };
+    }
+  });
+
+  /* ---------- date helpers ---------- */
+  function daysUntil(d){ if(!d) return null; const t=new Date(); t.setHours(0,0,0,0);
+    const x=new Date(d+"T00:00:00"); if(isNaN(x)) return null; return Math.round((x-t)/86400000); }
+  function fmtDate(d){ if(!d) return ""; const x=new Date(d+"T00:00:00"); if(isNaN(x)) return d;
+    return x.toLocaleDateString("en-CA",{month:"short",day:"numeric"}); }
+
+  /* ---------- local UI state ---------- */
+  let S=null, persist=()=>{}, toast=()=>{};
+  let view = "journals";
+  const F = { jq:"", jstatus:"", jsimul:false, pq:"", preg:"", sstatus:"", dlh:30 };
+  const titleCase = s => s.charAt(0).toUpperCase()+s.slice(1);
+
+  /* ---------- one-time wiring ---------- */
+  let wired=false;
+  function wireOnce(){
+    if(wired) return; wired=true;
+
+    // filter option lists
+    PST.JOURNAL_STATUS.forEach(s=>$("j-filter-status").insertAdjacentHTML("beforeend",`<option value="${s}">${titleCase(s)}</option>`));
+    Object.keys(PST.REGISTERS).forEach(k=>$("p-filter-register").insertAdjacentHTML("beforeend",`<option value="${k}">${PST.REGISTERS[k]}</option>`));
+    PST.SUB_STATUS.forEach(s=>$("s-filter-status").insertAdjacentHTML("beforeend",`<option value="${s}">${titleCase(s)}</option>`));
+
+    // tabs
+    document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>setView(t.dataset.view)));
+    // journal filters
+    $("j-search").addEventListener("input",e=>{F.jq=e.target.value; renderJournals();});
+    $("j-filter-status").addEventListener("change",e=>{F.jstatus=e.target.value; renderJournals();});
+    $("j-filter-simul").addEventListener("change",e=>{F.jsimul=e.target.checked; renderJournals();});
+    $("btn-add-journal").addEventListener("click",()=>openJournalEditor(null));
+    // poem/sub filters + add (poems/subs implemented in stage 3)
+    $("p-search").addEventListener("input",e=>{F.pq=e.target.value; renderPoems();});
+    $("p-filter-register").addEventListener("change",e=>{F.preg=e.target.value; renderPoems();});
+    $("s-filter-status").addEventListener("change",e=>{F.sstatus=e.target.value; renderSubs();});
+    $("btn-add-poem").addEventListener("click",()=>openPoemEditor && openPoemEditor(null));
+    $("btn-add-sub").addEventListener("click",()=>openSubEditor && openSubEditor(null));
+
+    // delegated events on journal list
+    const jl = $("journal-list");
+    jl.addEventListener("change",e=>{
+      const sel = e.target.closest("select[data-status]");
+      if(sel){ const id=sel.closest("[data-id]").dataset.id;
+        PST.upsertJournal(S,{id,status:sel.value}); persist(); }
+    });
+    jl.addEventListener("click",e=>{
+      const btn=e.target.closest("[data-act]"); if(!btn) return;
+      const id=btn.closest("[data-id]").dataset.id;
+      const j=S.journals.find(x=>x.id===id); if(!j) return;
+      if(btn.dataset.act==="edit") openJournalEditor(j);
+      if(btn.dataset.act==="del") confirmDeleteJournal(j);
+    });
+
+    // delegated events on poem list
+    const pl=$("poem-list");
+    pl.addEventListener("change",e=>{
+      const sel=e.target.closest("select[data-pstatus]");
+      if(sel){ const id=sel.closest("[data-id]").dataset.id;
+        PST.upsertPoem(S,{id,status:sel.value}); persist(); }
+    });
+    pl.addEventListener("click",e=>{
+      const btn=e.target.closest("[data-act]"); if(!btn) return;
+      const id=btn.closest("[data-id]").dataset.id;
+      const p=S.poems.find(x=>x.id===id); if(!p) return;
+      if(btn.dataset.act==="edit") openPoemEditor(p);
+      if(btn.dataset.act==="del") confirmDeletePoem(p);
+    });
+
+    // delegated events on submission list
+    const sl=$("sub-list");
+    sl.addEventListener("change",e=>{
+      const sel=e.target.closest("select[data-sstatus]");
+      if(sel){ const id=sel.closest("[data-id]").dataset.id;
+        const wasPending=S.submissions.find(s=>s.id===id).status;
+        PST.upsertSubmission(S,{id,status:sel.value}); persist();
+        if(sel.value==="accepted") toast("Accepted — check the withdrawal alerts up top.");
+      }
+    });
+    sl.addEventListener("click",e=>{
+      const btn=e.target.closest("[data-act]"); if(!btn) return;
+      const id=btn.closest("[data-id]").dataset.id;
+      const s=S.submissions.find(x=>x.id===id); if(!s) return;
+      if(btn.dataset.act==="edit") openSubEditor(s);
+      if(btn.dataset.act==="del") confirmDeleteSub(s);
+      if(btn.dataset.act==="withdraw"){ PST.upsertSubmission(S,{id,status:"withdrawn"}); persist(); toast("Marked withdrawn."); }
+    });
+
+    // delegated events on the withdrawal alert banner
+    $("alert-root").addEventListener("click",e=>{
+      const btn=e.target.closest("[data-act]"); if(!btn) return;
+      const id=btn.dataset.subid;
+      if(btn.dataset.act==="withdraw"){ PST.upsertSubmission(S,{id,status:"withdrawn"}); persist(); toast("Marked withdrawn."); }
+      if(btn.dataset.act==="review"){ const s=S.submissions.find(x=>x.id===id); if(s) openSubEditor(s); }
+    });
+
+    // deadlines view: horizon control + row actions
+    $("dl-horizon").addEventListener("change",e=>{ F.dlh=parseInt(e.target.value,10)||30; if(view==="deadlines") renderDeadlines(); });
+    $("deadline-list").addEventListener("click",e=>{
+      const btn=e.target.closest("[data-act]"); if(!btn) return;
+      const act=btn.dataset.act;
+      if(act==="openj"){ const j=S.journals.find(x=>x.id===btn.dataset.jid); if(j) openJournalEditor(j); }
+      else if(act==="logsub"){ openSubEditor(null,{prefillJournalId:btn.dataset.jid}); }
+      else if(act==="opensub"){ const s=S.submissions.find(x=>x.id===btn.dataset.sid); if(s) openSubEditor(s); }
+      else if(act==="reject"){ PST.upsertSubmission(S,{id:btn.dataset.sid,status:"rejected",responseDate:new Date().toISOString().slice(0,10)}); persist(); toast("Marked rejected."); }
+    });
+  }
+
+  function setView(v){
+    view=v;
+    document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected", String(t.dataset.view===v)));
+    $("view-journals").classList.toggle("hidden",v!=="journals");
+    $("view-poems").classList.toggle("hidden",v!=="poems");
+    $("view-submissions").classList.toggle("hidden",v!=="submissions");
+    $("view-deadlines").classList.toggle("hidden",v!=="deadlines");
+    renderActive();
+  }
+
+  /* ---------- status select ---------- */
+  function statusSelect(j){
+    const opts = PST.JOURNAL_STATUS.map(s=>`<option value="${s}"${s===j.status?" selected":""}>${titleCase(s)}</option>`).join("");
+    return `<span class="statuspill"><select data-status class="st-${j.status}" aria-label="Status for ${esc(j.name)}">${opts}</select></span>`;
+  }
+
+  /* ---------- journal card ---------- */
+  function periodChip(j){
+    const rp=j.readingPeriod||{};
+    if(rp.type==="window" && rp.close){
+      const dleft=daysUntil(rp.close);
+      if(dleft!=null && dleft<0) return `<span class="chip">Closed ${fmtDate(rp.close)}</span>`;
+      let txt = (rp.open?fmtDate(rp.open)+" – ":"until ")+fmtDate(rp.close);
+      const warn = dleft!=null && dleft<=14;
+      if(warn) txt += ` · closes in ${dleft}d`;
+      return `<span class="chip${warn?" warn":""}">${txt}</span>`;
+    }
+    if(rp.type==="window") return `<span class="chip">Window (no dates)</span>`;
+    return `<span class="chip">Rolling</span>`;
+  }
+  function journalCard(j){
+    const chips=[ periodChip(j) ];
+    if(j.readingFee) chips.push(`<span class="chip">Fee ${esc(j.readingFee)}</span>`);
+    if(j.simultaneousOk===true) chips.push(`<span class="chip good">Simultaneous ✓</span>`);
+    else if(j.simultaneousOk===false) chips.push(`<span class="chip">No simultaneous</span>`);
+    if(j.pays) chips.push(`<span class="chip">Pays ${esc(j.pays)}</span>`);
+    if(j.responseTime) chips.push(`<span class="chip">↩ ${esc(j.responseTime)}</span>`);
+    const subCount=S.submissions.filter(x=>x.journalId===j.id).length;
+    const openCount=S.submissions.filter(x=>x.journalId===j.id && x.status==="pending").length;
+    if(subCount) chips.push(`<span class="chip${openCount?" warn":""}">${subCount} submission${subCount===1?"":"s"}${openCount?` · ${openCount} open`:""}</span>`);
+    const titleHTML = j.url
+      ? `<a href="${esc(hrefOf(j.url))}" target="_blank" rel="noopener">${esc(j.name)||"(untitled journal)"}</a>`
+      : (esc(j.name)||"(untitled journal)");
+    return `<div class="card" data-id="${j.id}">
+      <div class="top">
+        <h3 class="title">${titleHTML}</h3>
+        ${statusSelect(j)}
+      </div>
+      <div class="meta">${chips.join("")}</div>
+      ${j.aesthetic?`<div class="aesthetic">${esc(j.aesthetic)}</div>`:""}
+      <div class="row-actions">
+        <button class="ghost sm" data-act="edit">Edit</button>
+        <button class="ghost sm" data-act="del">Delete</button>
+        ${j.source?`<span class="chip" style="margin-left:auto">via ${esc(j.source)}</span>`:""}
+      </div>
+    </div>`;
+  }
+
+  function renderJournals(){
+    const list=$("journal-list"); if(!list) return;
+    if(S.journals.length===0){
+      list.innerHTML=`<div class="section-empty"><h3>No journals yet</h3><p>Add one by hand, or run a discovery batch and merge it in.</p></div>`;
+      return;
+    }
+    const filtered = PST.filterJournals(S.journals,{q:F.jq,status:F.jstatus,simulOnly:F.jsimul})
+      .sort((a,b)=> a.name.localeCompare(b.name));
+    if(filtered.length===0){
+      list.innerHTML=`<div class="section-empty"><h3>Nothing matches</h3><p>No journals match your filters. Clear them to see all ${S.journals.length}.</p></div>`;
+      return;
+    }
+    list.innerHTML = filtered.map(journalCard).join("");
+  }
+
+  function confirmDeleteJournal(j){
+    const subs = S.submissions.filter(s=>s.journalId===j.id).length;
+    const extra = subs? ` This also removes ${subs} submission${subs===1?"":"s"} logged against it.`:"";
+    if(window.confirm(`Delete “${j.name||"this journal"}”?${extra}`)){
+      PST.deleteJournal(S,j.id); persist(); toast("Journal deleted.");
+    }
+  }
+
+  /* ---------- journal editor modal ---------- */
+  function openModal(innerHTML){
+    const root=$("modal-root");
+    root.innerHTML=`<div class="modal-back"><div class="modal" role="dialog" aria-modal="true">${innerHTML}</div></div>`;
+    const back=root.querySelector(".modal-back");
+    const close=()=>{ root.innerHTML=""; document.removeEventListener("keydown",onKey); };
+    function onKey(e){ if(e.key==="Escape") close(); }
+    back.addEventListener("click",e=>{ if(e.target===back) close(); });
+    document.addEventListener("keydown",onKey);
+    const first=root.querySelector("input,select,textarea"); if(first) first.focus();
+    return { root, close };
+  }
+  function triOpts(v){ const cur=v===true?"yes":v===false?"no":"";
+    return [["","Unknown"],["yes","Yes"],["no","No"]].map(([val,lab])=>`<option value="${val}"${val===cur?" selected":""}>${lab}</option>`).join(""); }
+
+  function openJournalEditor(j){
+    const isNew=!j; j=j||{}; const rp=j.readingPeriod||{type:"rolling"};
+    const statusOpts=PST.JOURNAL_STATUS.map(s=>`<option value="${s}"${s===(j.status||"interested")?" selected":""}>${titleCase(s)}</option>`).join("");
+    const html=`<h2>${isNew?"Add journal":"Edit journal"}</h2>
+      <div class="form-grid">
+        <div class="fld full"><label>Name <span class="req-mark">*</span></label><input type="text" id="f-name" value="${esc(j.name)}"></div>
+        <div class="fld full"><label>Submissions URL</label><input type="url" id="f-url" value="${esc(j.url)}" placeholder="https://…"></div>
+        <div class="fld"><label>Reading period</label><select id="f-rptype"><option value="rolling">Rolling / always open</option><option value="window">Window (dates)</option></select></div>
+        <div class="fld"><label>Status</label><select id="f-status">${statusOpts}</select></div>
+        <div class="fld full hidden" id="f-dates"><label>Open – close</label><div class="inline-dates"><div><input type="date" id="f-open" aria-label="Opens"></div><div><input type="date" id="f-close" aria-label="Closes"></div></div></div>
+        <div class="fld"><label>Reading fee</label><input type="text" id="f-fee" value="${esc(j.readingFee)}" placeholder="e.g. $3 / free"></div>
+        <div class="fld"><label>Pays contributors</label><input type="text" id="f-pays" value="${esc(j.pays)}" placeholder="e.g. $50 / copies"></div>
+        <div class="fld"><label>Simultaneous subs</label><select id="f-simul">${triOpts(j.simultaneousOk)}</select></div>
+        <div class="fld"><label>Multiple poems</label><select id="f-mult">${triOpts(j.multipleOk)}</select></div>
+        <div class="fld full"><label>Typical response time</label><input type="text" id="f-resp" value="${esc(j.responseTime)}" placeholder="e.g. 2–4 months"></div>
+        <div class="fld full"><label>Aesthetic / what they publish</label><textarea id="f-aesth">${esc(j.aesthetic)}</textarea></div>
+        <div class="fld full"><label>Source <span class="hint">where you found it</span></label><input type="text" id="f-source" value="${esc(j.source)}" placeholder="e.g. Chill Subs"></div>
+        <div class="fld full"><label>Notes</label><textarea id="f-notes">${esc(j.notes)}</textarea></div>
+      </div>
+      <div class="modal-actions">
+        ${isNew?"":'<button class="danger" id="f-del">Delete</button>'}
+        <span class="grow"></span>
+        <button class="ghost" id="f-cancel">Cancel</button>
+        <button class="primary" id="f-save">${isNew?"Add journal":"Save changes"}</button>
+      </div>`;
+    const m=openModal(html);
+    // hydrate selects/dates
+    $("f-rptype").value = rp.type==="window"?"window":"rolling";
+    $("f-status").value = j.status||"interested";
+    const datesWrap=$("f-dates");
+    function syncDates(){ datesWrap.classList.toggle("hidden",$("f-rptype").value!=="window"); }
+    syncDates();
+    if(rp.open) $("f-open").value=rp.open;
+    if(rp.close) $("f-close").value=rp.close;
+    $("f-rptype").addEventListener("change",syncDates);
+    $("f-cancel").addEventListener("click",m.close);
+    if(!isNew) $("f-del").addEventListener("click",()=>{ m.close(); confirmDeleteJournal(j); });
+    $("f-save").addEventListener("click",()=>{
+      const name=$("f-name").value.trim();
+      if(!name){ $("f-name").focus(); $("f-name").style.borderColor="var(--rust)"; toast("Give the journal a name."); return; }
+      const type=$("f-rptype").value;
+      const props={ id:j.id, name, url:$("f-url").value.trim(),
+        readingPeriod:{ type, open:type==="window"?($("f-open").value||null):null, close:type==="window"?($("f-close").value||null):null },
+        readingFee:$("f-fee").value.trim(), pays:$("f-pays").value.trim(),
+        simultaneousOk:$("f-simul").value, multipleOk:$("f-mult").value,
+        responseTime:$("f-resp").value.trim(), aesthetic:$("f-aesth").value.trim(),
+        status:$("f-status").value, source:$("f-source").value.trim(), notes:$("f-notes").value.trim() };
+      PST.upsertJournal(S,props); persist(); m.close(); toast(isNew?"Journal added.":"Saved.");
+    });
+  }
+  // expose editor for tests
+  window.openJournalEditor = openJournalEditor;
+
+  /* ---------- poems / submissions / withdrawals (stage 3) ---------- */
+  let WD=[], WDIndex=new Map();
+  const POEM_ST_CLASS={draft:"st-interested",ready:"st-shortlisted",out:"st-pending",published:"st-accepted",retired:"st-closed"};
+
+  function poemStatusSelect(p){
+    const opts=PST.POEM_STATUS.map(s=>`<option value="${s}"${s===p.status?" selected":""}>${titleCase(s)}</option>`).join("");
+    return `<span class="statuspill"><select data-pstatus class="${POEM_ST_CLASS[p.status]||""}" aria-label="Status for ${esc(p.title)}">${opts}</select></span>`;
+  }
+  function poemCard(p){
+    const out=PST.poemsOutAt(S,p.id);
+    const chips=[];
+    if(p.register) chips.push(`<span class="chip">${esc(PST.REGISTERS[p.register])}</span>`);
+    if(p.lineCount!=null) chips.push(`<span class="chip">${p.lineCount} lines</span>`);
+    if(out.length) chips.push(`<span class="chip warn">Out at ${out.map(o=>esc(o.journalName)).join(", ")}</span>`);
+    if(p.publicationCredit) chips.push(`<span class="chip good">Published: ${esc(p.publicationCredit)}</span>`);
+    return `<div class="card" data-id="${p.id}">
+      <div class="top"><h3 class="title">${esc(p.title)||"(untitled poem)"}</h3>${poemStatusSelect(p)}</div>
+      ${chips.length?`<div class="meta">${chips.join("")}</div>`:""}
+      ${p.notes?`<div class="aesthetic">${esc(p.notes)}</div>`:""}
+      <div class="row-actions"><button class="ghost sm" data-act="edit">Edit</button><button class="ghost sm" data-act="del">Delete</button></div>
+    </div>`;
+  }
+  function renderPoems(){
+    const l=$("poem-list"); if(!l) return;
+    if(S.poems.length===0){ l.innerHTML=`<div class="section-empty"><h3>No poems yet</h3><p>Add poems here, or quick-add them while logging a submission.</p></div>`; return; }
+    const filtered=PST.filterPoems(S.poems,{q:F.pq,register:F.preg}).sort((a,b)=>a.title.localeCompare(b.title));
+    if(filtered.length===0){ l.innerHTML=`<div class="section-empty"><h3>Nothing matches</h3><p>No poems match your filters.</p></div>`; return; }
+    l.innerHTML=filtered.map(poemCard).join("");
+  }
+  function confirmDeletePoem(p){
+    const inSubs=S.submissions.filter(s=>s.poemIds.includes(p.id)).length;
+    const extra=inSubs?` It's in ${inSubs} submission${inSubs===1?"":"s"} and will be removed from ${inSubs===1?"it":"them"}.`:"";
+    if(window.confirm(`Delete “${p.title||"this poem"}”?${extra}`)){ PST.deletePoem(S,p.id); persist(); toast("Poem deleted."); }
+  }
+  function openPoemEditor(p){
+    const isNew=!p; p=p||{};
+    const regOpts=`<option value="">Unspecified</option>`+Object.keys(PST.REGISTERS).map(k=>`<option value="${k}"${k===p.register?" selected":""}>${PST.REGISTERS[k]}</option>`).join("");
+    const stOpts=PST.POEM_STATUS.map(s=>`<option value="${s}"${s===(p.status||"draft")?" selected":""}>${titleCase(s)}</option>`).join("");
+    const html=`<h2>${isNew?"Add poem":"Edit poem"}</h2>
+      <div class="form-grid">
+        <div class="fld full"><label>Title <span class="req-mark">*</span></label><input type="text" id="pf-title" value="${esc(p.title)}"></div>
+        <div class="fld"><label>Register</label><select id="pf-reg">${regOpts}</select></div>
+        <div class="fld"><label>Status</label><select id="pf-status">${stOpts}</select></div>
+        <div class="fld"><label>Line count</label><input type="number" id="pf-lines" min="0" value="${p.lineCount!=null?p.lineCount:""}"></div>
+        <div class="fld"><label>Publication credit</label><input type="text" id="pf-credit" value="${esc(p.publicationCredit)}" placeholder="if accepted"></div>
+        <div class="fld full"><label>Notes</label><textarea id="pf-notes">${esc(p.notes)}</textarea></div>
+      </div>
+      <div class="modal-actions">
+        ${isNew?"":'<button class="danger" id="pf-del">Delete</button>'}
+        <span class="grow"></span>
+        <button class="ghost" id="pf-cancel">Cancel</button>
+        <button class="primary" id="pf-save">${isNew?"Add poem":"Save changes"}</button>
+      </div>`;
+    const m=openModal(html);
+    $("pf-reg").value=p.register||""; $("pf-status").value=p.status||"draft";
+    $("pf-cancel").addEventListener("click",m.close);
+    if(!isNew) $("pf-del").addEventListener("click",()=>{m.close();confirmDeletePoem(p);});
+    $("pf-save").addEventListener("click",()=>{
+      const title=$("pf-title").value.trim();
+      if(!title){ $("pf-title").focus(); $("pf-title").style.borderColor="var(--rust)"; toast("Give the poem a title."); return; }
+      PST.upsertPoem(S,{ id:p.id, title, register:$("pf-reg").value, status:$("pf-status").value,
+        lineCount:$("pf-lines").value, publicationCredit:$("pf-credit").value.trim(), notes:$("pf-notes").value.trim() });
+      persist(); m.close(); toast(isNew?"Poem added.":"Saved.");
+    });
+  }
+
+  function subStatusSelect(s){
+    const opts=PST.SUB_STATUS.map(x=>`<option value="${x}"${x===s.status?" selected":""}>${titleCase(x)}</option>`).join("");
+    return `<span class="statuspill"><select data-sstatus class="st-${s.status}" aria-label="Submission status">${opts}</select></span>`;
+  }
+  function subCard(s){
+    const jn=PST.journalName(S,s.journalId);
+    const poemChips=s.poemIds.length? s.poemIds.map(id=>`<span class="chip">${esc(PST.poemTitle(S,id))}</span>`).join("") : `<span class="chip">(no poems)</span>`;
+    const chips=[];
+    if(s.dateSent) chips.push(`<span class="chip">Sent ${fmtDate(s.dateSent)}</span>`);
+    if(s.responseDate) chips.push(`<span class="chip">Reply ${fmtDate(s.responseDate)}</span>`);
+    if(s.simultaneous) chips.push(`<span class="chip">Simultaneous</span>`);
+    if(s.feePaid) chips.push(`<span class="chip">Fee ${esc(s.feePaid)}</span>`);
+    const flag=WDIndex.get(s.id);
+    const warnHTML=flag?`<div class="withdraw-inline">⚠ Withdraw this packet — ${flag.poems.map(pp=>`<b>${esc(pp.title)}</b> accepted at ${esc(pp.acceptedAt.join(", "))}`).join("; ")}.</div>`:"";
+    return `<div class="card" data-id="${s.id}">
+      <div class="top"><h3 class="title">${esc(jn)}</h3>${subStatusSelect(s)}</div>
+      <div class="sub-poemline">${poemChips}</div>
+      ${chips.length?`<div class="meta">${chips.join("")}</div>`:""}
+      ${s.notes?`<div class="aesthetic">${esc(s.notes)}</div>`:""}
+      ${warnHTML}
+      <div class="row-actions">
+        <button class="ghost sm" data-act="edit">Edit</button>
+        <button class="ghost sm" data-act="del">Delete</button>
+        ${flag?`<button class="danger sm" data-act="withdraw" style="margin-left:auto">Mark withdrawn</button>`:""}
+      </div>
+    </div>`;
+  }
+  function renderSubs(){
+    const l=$("sub-list"); if(!l) return;
+    if(S.submissions.length===0){ l.innerHTML=`<div class="section-empty"><h3>No submissions yet</h3><p>Log one with “+ Log submission”. You'll need at least one journal and poem.</p></div>`; return; }
+    let subs=S.submissions.slice();
+    if(F.sstatus) subs=subs.filter(s=>s.status===F.sstatus);
+    subs.sort((a,b)=>(b.dateSent||"").localeCompare(a.dateSent||""));
+    if(subs.length===0){ l.innerHTML=`<div class="section-empty"><h3>Nothing matches</h3><p>No submissions with that status.</p></div>`; return; }
+    l.innerHTML=subs.map(subCard).join("");
+  }
+  function confirmDeleteSub(s){
+    if(window.confirm(`Delete this submission to ${PST.journalName(S,s.journalId)}?`)){ PST.deleteSubmission(S,s.id); persist(); toast("Submission deleted."); }
+  }
+  function openSubEditor(s, opts){
+    opts=opts||{};
+    const isNew=!s; s=s||{};
+    if(S.journals.length===0){ toast("Add a journal first."); setView("journals"); return; }
+    const selected=new Set(s.poemIds||[]);
+    const jOpts=`<option value="">Select a journal…</option>`+S.journals.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(j=>`<option value="${j.id}">${esc(j.name)}</option>`).join("");
+    const stOpts=PST.SUB_STATUS.map(x=>`<option value="${x}">${titleCase(x)}</option>`).join("");
+    const html=`<h2>${isNew?"Log submission":"Edit submission"}</h2>
+      <div class="form-grid">
+        <div class="fld full"><label>Journal <span class="req-mark">*</span></label><select id="sf-journal">${jOpts}</select></div>
+        <div class="fld full"><label>Poems <span class="req-mark">*</span> <span class="hint">tap to include</span></label>
+          <div class="poemtoggles" id="sf-poems"></div>
+          <div class="quick-add"><input type="text" id="sf-newpoem" placeholder="Quick-add a new poem by title…"><button class="sm" id="sf-addpoem" type="button">Add</button></div>
+        </div>
+        <div class="fld"><label>Date sent</label><input type="date" id="sf-sent"></div>
+        <div class="fld"><label>Status</label><select id="sf-status">${stOpts}</select></div>
+        <div class="fld"><label>Response date</label><input type="date" id="sf-resp"></div>
+        <div class="fld"><label>Fee paid</label><input type="text" id="sf-fee" value="${esc(s.feePaid)}"></div>
+        <div class="fld full"><label class="chk"><input type="checkbox" id="sf-simul"${s.simultaneous?" checked":""}> Simultaneous submission</label></div>
+        <div class="fld full"><label>Notes</label><textarea id="sf-notes">${esc(s.notes)}</textarea></div>
+      </div>
+      <div class="modal-actions">
+        ${isNew?"":'<button class="danger" id="sf-del">Delete</button>'}
+        <span class="grow"></span>
+        <button class="ghost" id="sf-cancel">Cancel</button>
+        <button class="primary" id="sf-save">${isNew?"Log it":"Save changes"}</button>
+      </div>`;
+    const m=openModal(html);
+    $("sf-journal").value=s.journalId||opts.prefillJournalId||"";
+    $("sf-status").value=s.status||"pending";
+    $("sf-sent").value=s.dateSent||new Date().toISOString().slice(0,10);
+    if(s.responseDate) $("sf-resp").value=s.responseDate;
+    function renderToggles(){
+      const wrap=$("sf-poems");
+      if(S.poems.length===0){ wrap.innerHTML=`<span class="hint">No poems yet — quick-add one below.</span>`; return; }
+      wrap.innerHTML=S.poems.slice().sort((a,b)=>a.title.localeCompare(b.title))
+        .map(p=>`<button type="button" class="ptog${selected.has(p.id)?" on":""}" data-pid="${p.id}">${esc(p.title)||"(untitled)"}</button>`).join("");
+    }
+    renderToggles();
+    $("sf-poems").addEventListener("click",e=>{
+      const b=e.target.closest(".ptog"); if(!b) return;
+      const pid=b.dataset.pid;
+      if(selected.has(pid)) selected.delete(pid); else selected.add(pid);
+      b.classList.toggle("on");
+    });
+    $("sf-addpoem").addEventListener("click",()=>{
+      const t=$("sf-newpoem").value.trim(); if(!t) return;
+      const np=PST.upsertPoem(S,{title:t}); persist();
+      selected.add(np.id); $("sf-newpoem").value=""; renderToggles();
+    });
+    $("sf-newpoem").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); $("sf-addpoem").click(); }});
+    $("sf-cancel").addEventListener("click",m.close);
+    if(!isNew) $("sf-del").addEventListener("click",()=>{m.close();confirmDeleteSub(s);});
+    $("sf-save").addEventListener("click",()=>{
+      const journalId=$("sf-journal").value;
+      if(!journalId){ $("sf-journal").focus(); toast("Pick a journal."); return; }
+      if(selected.size===0){ toast("Include at least one poem."); return; }
+      PST.upsertSubmission(S,{ id:s.id, journalId, poemIds:[...selected],
+        dateSent:$("sf-sent").value, status:$("sf-status").value, responseDate:$("sf-resp").value||null,
+        feePaid:$("sf-fee").value.trim(), simultaneous:$("sf-simul").checked, notes:$("sf-notes").value.trim() });
+      persist(); m.close(); toast(isNew?"Submission logged.":"Saved.");
+    });
+  }
+  window.openPoemEditor=openPoemEditor;
+  window.openSubEditor=openSubEditor;
+
+  /* ---------- withdrawal alert banner ---------- */
+  function renderAlerts(){
+    WD=PST.computeWithdrawals(S);
+    WDIndex=new Map(WD.map(w=>[w.submissionId,w]));
+    const root=$("alert-root"); if(!root) return;
+    if(WD.length===0){ root.innerHTML=""; return; }
+    const cards=WD.map(w=>{
+      const poemList=w.poems.map(p=>`<b>${esc(p.title)}</b> (accepted at ${esc(p.acceptedAt.join(", "))})`).join("; ");
+      return `<div class="alert-card">
+        <h3>Withdraw from ${esc(w.journalName)}</h3>
+        <p>${poemList} — this packet is still open there. Withdraw it so you don't leave a poem on offer that you can no longer give.</p>
+        <div class="acts">
+          <button class="danger sm" data-act="withdraw" data-subid="${w.submissionId}">Mark withdrawn</button>
+          <button class="ghost sm" data-act="review" data-subid="${w.submissionId}">Review submission</button>
+        </div>
+      </div>`;
+    }).join("");
+    root.innerHTML=`<div class="alerts-wrap"><h2 class="head">⚠ ${WD.length} withdrawal${WD.length===1?"":"s"} needed</h2>${cards}</div>`;
+  }
+
+  /* ---------- import: choose merge vs replace ---------- */
+  window.__onImportFile=function(file){
+    const reader=new FileReader();
+    reader.onload=()=>{
+      let obj; try{ obj=JSON.parse(reader.result); }
+      catch(e){ toast("That file isn't valid JSON."); return; }
+      const v=PST.validateImport(obj);
+      if(!v.ok){ toast(v.errors[0]||"Couldn't read that file."); return; }
+      openImportChoice(v.state);
+    };
+    reader.readAsText(file);
+  };
+  function openImportChoice(incoming){
+    const nj=incoming.journals.length, np=incoming.poems.length, ns=incoming.submissions.length;
+    const curTotal=S.journals.length+S.poems.length+S.submissions.length;
+    // preview merge using the same dedupe key as PST.mergeJournals
+    const keys=new Set(S.journals.map(j=>PST.journalKey(j)));
+    let wouldAdd=0; incoming.journals.forEach(j=>{ const k=PST.journalKey(j); if(!keys.has(k)){ wouldAdd++; keys.add(k);} });
+    const wouldSkip=nj-wouldAdd;
+    const html=`<h2>Import</h2>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 14px">This file holds <b>${nj}</b> journal${nj===1?"":"s"}, <b>${np}</b> poem${np===1?"":"s"}, <b>${ns}</b> submission${ns===1?"":"s"}.</p>
+      <div class="import-opt">
+        <h3>Merge journals</h3>
+        <p>Adds <b>${wouldAdd}</b> new journal${wouldAdd===1?"":"s"}${wouldSkip?`, skips <b>${wouldSkip}</b> already in your list`:""}. Everything you already have is kept, statuses untouched. Poems and submissions in the file are ignored. Use this for a discovery batch.</p>
+        <button class="accent" id="imp-merge"${wouldAdd?"":" disabled style='opacity:.5'"}>Merge ${wouldAdd} journal${wouldAdd===1?"":"s"}</button>
+      </div>
+      <div class="import-opt">
+        <h3>Replace everything</h3>
+        <p>Clears the current ${curTotal} record${curTotal===1?"":"s"} and loads this file as-is. Use this to restore a backup or move to a new device.</p>
+        <button class="danger" id="imp-replace">Replace all</button>
+      </div>
+      <div class="modal-actions"><span class="grow"></span><button class="ghost" id="imp-cancel">Cancel</button></div>`;
+    const m=openModal(html);
+    $("imp-cancel").addEventListener("click",m.close);
+    if(wouldAdd) $("imp-merge").addEventListener("click",()=>{
+      const r=PST.mergeJournals(S, incoming.journals); persist(); m.close();
+      setView("journals");
+      toast(`Merged ${r.added} new journal${r.added===1?"":"s"}${r.skipped.length?`, skipped ${r.skipped.length} duplicate${r.skipped.length===1?"":"s"}`:""}.`);
+    });
+    $("imp-replace").addEventListener("click",()=>{
+      if(curTotal>0 && !window.confirm(`Replace all ${curTotal} current record${curTotal===1?"":"s"} with the file's contents?`)) return;
+      window.__app.state=incoming; window.__app.persist(); m.close();
+      toast("Restored from backup.");
+    });
+  }
+
+  /* ---------- deadlines view (stage 6) ---------- */
+  function renderDeadlines(){
+    const root=$("deadline-list"); if(!root) return;
+    const d=PST.computeDeadlines(S,{horizonDays:F.dlh});
+    const sections=[];
+
+    if(d.closingSoon.length){
+      const rows=d.closingSoon.map(c=>{
+        const cls=c.daysLeft<=7?"urgent":(c.daysLeft<=14?"soon":"");
+        const w=c.daysLeft===0?"closes today":(c.daysLeft===1?"closes tomorrow":`closes in ${c.daysLeft} days`);
+        return `<div class="dl-row">
+          <span class="nm">${esc(c.name)||"(untitled journal)"}<small>${titleCase(c.status)}</small></span>
+          <span class="when ${cls}">${w} · ${fmtDate(c.close)}</span>
+          <span class="acts"><button class="accent sm" data-act="logsub" data-jid="${c.journalId}">Log submission</button><button class="ghost sm" data-act="openj" data-jid="${c.journalId}">Open</button></span>
+        </div>`;
+      }).join("");
+      sections.push(`<div class="dl-section"><div class="h">Closing soon <span class="n">${d.closingSoon.length}</span></div>${rows}</div>`);
+    }
+
+    if(d.opensSoon.length){
+      const rows=d.opensSoon.map(o=>{
+        const w=o.daysUntilOpen===1?"opens tomorrow":`opens in ${o.daysUntilOpen} days`;
+        return `<div class="dl-row">
+          <span class="nm">${esc(o.name)||"(untitled journal)"}<small>${titleCase(o.status)}</small></span>
+          <span class="when">${w} · ${fmtDate(o.open)}</span>
+          <span class="acts"><button class="ghost sm" data-act="openj" data-jid="${o.journalId}">Open</button></span>
+        </div>`;
+      }).join("");
+      sections.push(`<div class="dl-section"><div class="h">Opening soon <span class="n">${d.opensSoon.length}</span></div>${rows}</div>`);
+    }
+
+    if(d.awaitingReply.length){
+      const rows=d.awaitingReply.map(a=>{
+        const w=a.daysWaiting==null?"":(a.daysWaiting===0?"sent today":`waiting ${a.daysWaiting} day${a.daysWaiting===1?"":"s"}`);
+        const pill=a.overdue?`<span class="dl-pill overdue">Overdue</span>`
+          :(a.expectedText?`<span class="dl-pill">~${esc(a.expectedText)}</span>`:`<span class="dl-pill">no stated time</span>`);
+        const poems=a.poems.length?esc(a.poems.join(", ")):"(no poems)";
+        return `<div class="dl-row">
+          <span class="nm">${esc(a.journalName)}<small>${poems}</small></span>
+          <span class="when${a.overdue?" urgent":""}">${w}${a.dateSent?` · sent ${fmtDate(a.dateSent)}`:""}</span>
+          ${pill}
+          <span class="acts"><button class="ghost sm" data-act="opensub" data-sid="${a.submissionId}">Open</button><button class="sm" data-act="reject" data-sid="${a.submissionId}">Mark rejected</button></span>
+        </div>`;
+      }).join("");
+      sections.push(`<div class="dl-section"><div class="h">Awaiting reply <span class="n">${d.awaitingReply.length}</span></div>${rows}</div>`);
+    }
+
+    root.innerHTML = sections.length ? sections.join("")
+      : `<div class="section-empty"><h3>Nothing on the horizon</h3><p>No journals closing or opening in the next ${F.dlh} days, and nothing overdue for a reply. Add reading windows and response times to your journals to feed this view.</p></div>`;
+  }
+
+  function renderActive(){
+    if(view==="journals") renderJournals();
+    else if(view==="poems") renderPoems();
+    else if(view==="submissions") renderSubs();
+    else renderDeadlines();
+  }
+
+  /* ---------- hook called by core on every render ---------- */
+  window.__renderEntities = function(state,_persist,_toast){
+    S=state; persist=_persist; toast=_toast;
+    wireOnce();
+    $("tab-c-journals").textContent=S.journals.length;
+    $("tab-c-poems").textContent=S.poems.length;
+    $("tab-c-subs").textContent=S.submissions.length;
+    $("tab-c-dl").textContent=PST.computeDeadlines(S,{horizonDays:F.dlh}).attention;
+    renderAlerts();
+    renderActive();
+  };
+  // trigger an initial render now that the hook exists
+  if(window.__app) window.__app.render();
+})();
+</script>
+</body>
+</html>
