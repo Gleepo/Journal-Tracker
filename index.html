@@ -419,13 +419,26 @@ const PST = (function(){
 
   /* ---- persistence ---- */
   function load(){
+    let raw = null;
     try{
-      const raw = localStorage.getItem(STORAGE_KEY);
+      raw = localStorage.getItem(STORAGE_KEY);
       if(!raw) return newState();
       const parsed = JSON.parse(raw);
       const v = validateImport(parsed);
-      return v.ok ? v.state : newState();
-    }catch(e){ console.warn("load failed",e); return newState(); }
+      if(v.ok) return v.state;
+      stashCorrupt(raw, "failed validation");
+      return newState();
+    }catch(e){ console.warn("load failed",e); stashCorrupt(raw, e && e.message); return newState(); }
+  }
+  // Data-loss guard: the first save() after a failed load would silently
+  // overwrite the damaged original. Preserve it under a stash key and warn.
+  function stashCorrupt(raw, why){
+    if(!raw) return;
+    try{ localStorage.setItem(STORAGE_KEY + ":corrupt", raw); }catch(_){}
+    console.warn("Stored data could not be read ("+why+"). Damaged copy preserved at "+STORAGE_KEY+":corrupt");
+    setTimeout(function(){
+      try{ toast("Stored data could not be read. The damaged copy was preserved at \"" + STORAGE_KEY + ":corrupt\" \u2014 recover it before making changes."); }catch(_){}
+    }, 0);
   }
   function save(state){
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); return true; }
